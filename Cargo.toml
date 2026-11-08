@@ -16,7 +16,7 @@ eframe = { version = "0.31", default-features = false, features = ["default_font
 flate2 = "1.1.10"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "tiff", "bmp", "webp"] }
 imageproc = { version = "0.25", default-features = false }
-libloading = "0.8.9"
+libloading = "0.9.0"
 llama-cpp-2 = { version = "0.1.159", default-features = false, features = ["common", "mtmd", "openmp"] }
 # Writes properties (title, tags) into PDFs as an incremental update.
 lopdf = { version = "0.45", default-features = false }
