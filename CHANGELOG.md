@@ -7,7 +7,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versio
 
 ## [Unreleased]
 
-## [1.0.0] – 2026-11-08
+## [1.0.0] – 2026-11-09
 
 First public release. Scrinium files scanned and digital documents into your existing folder archive with an AI that runs on your own computer.
 
