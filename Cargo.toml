@@ -19,7 +19,7 @@ imageproc = { version = "0.25", default-features = false }
 libloading = "0.8.9"
 llama-cpp-2 = { version = "0.1.159", default-features = false, features = ["common", "mtmd", "openmp"] }
 # Writes properties (title, tags) into PDFs as an incremental update.
-lopdf = { version = "0.45", default-features = false }
+lopdf = { version = "0.46", default-features = false }
 pdfium-render = { version = "0.8", default-features = false, features = ["thread_safe", "image", "pdfium_latest"] }
 regex = "1.13.1"
 rfd = "0.15"
