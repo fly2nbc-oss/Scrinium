@@ -1,0 +1,29 @@
+# Keeps the pinned actions in the workflows and the Rust dependencies up to date:
+# one combined pull request per group and month. The CI checks it.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7   # a new version must be a week old: time to withdraw a broken release
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    # The first matching group applies. egui and eframe need the same version; llama-cpp-2 and
+    # its -sys crate come together.
+    groups:
+      egui:
+        patterns: ["egui", "eframe", "egui_*"]
+      llama:
+        patterns: ["llama-cpp-*"]
+      deps:
+        patterns: ["*"]
+        update-types: [minor, patch]

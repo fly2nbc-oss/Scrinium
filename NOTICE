@@ -1,0 +1,34 @@
+Scrinium
+Copyright 2026 fly2nbc-oss
+
+Scrinium's own code is licensed under the Apache License, Version 2.0
+(see LICENSE). It includes third-party components; details are in
+THIRD_PARTY.md.
+
+Embedded in the binary:
+
+- llama.cpp and ggml
+  MIT, Copyright The ggml authors
+  https://github.com/ggml-org/llama.cpp
+
+- Lucide icons (subset font)
+  ISC, Copyright Lucide Contributors
+  https://lucide.dev
+
+- egui default fonts: Ubuntu Light (Ubuntu Font Licence 1.0),
+  Hack (MIT / Bitstream Vera), Noto Emoji (SIL OFL 1.1),
+  emoji-icon-font (MIT)
+
+- Windows only: Tesseract 5.5.3 as a DLL (Apache-2.0)
+  https://github.com/tesseract-ocr/tesseract
+  with Leptonica (BSD-2-Clause), zlib (Zlib), libpng (libpng-2.0),
+  libjpeg-turbo (IJG, BSD-3-Clause; this software is based in part on
+  the work of the Independent JPEG Group), libtiff (libtiff),
+  libwebp (BSD-3-Clause), giflib (MIT) and OpenJPEG (BSD-2-Clause).
+  License texts: licenses-tesseract/ in the program folder.
+
+Downloaded at run time on request, not distributed with Scrinium:
+
+- Qwen3-VL-Instruct models (Apache-2.0, Alibaba Cloud)
+- PDFium from bblanchon/pdfium-binaries (BSD-3-Clause, Apache-2.0)
+- Tesseract language data from tessdata_fast / tessdata_best (Apache-2.0)

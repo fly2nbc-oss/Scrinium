@@ -1,0 +1,83 @@
+name: Report a bug
+description: Something in Scrinium does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. A description is enough – please do **not attach real documents** and no names, addresses, account or tax numbers. A screenshot with blacked-out parts often helps.
+  - type: input
+    id: version
+    attributes:
+      label: Scrinium version
+      description: Shown under *Settings › General › About Scrinium*.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and graphics card
+      placeholder: "Windows 11, NVIDIA RTX 3060 / Ubuntu 24.04, CPU only"
+    validations:
+      required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - Windows installer (_x64-setup.exe)
+        - Windows portable (_x64-portable.zip)
+        - Linux AppImage
+        - Linux .deb
+        - Linux .tar.gz
+        - Built from source
+  - type: dropdown
+    id: ai
+    attributes:
+      label: AI
+      options:
+        - Built-in (Qwen3-VL 2B)
+        - Built-in (Qwen3-VL 4B)
+        - Built-in (Qwen3-VL 8B)
+        - Built-in (custom model)
+        - External server (LM Studio, Ollama …)
+        - Without AI
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Reading, OCR or image correction
+        - Scanning
+        - Date, document type, sender or subject
+        - Folder choice
+        - File name
+        - Filing or undo
+        - Settings
+        - Download of the model, PDFium or language data
+        - Other
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Drag a scan of … into the window
+        2. …
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+  - type: textarea
+    id: analyze
+    attributes:
+      label: Output of `scrinium --analyze` (if it is about a suggestion)
+      description: One JSON line per document. Please read it first – it contains the start of the recognised text and file names.
+      render: json

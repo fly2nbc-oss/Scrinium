@@ -1,0 +1,188 @@
+# Example configuration for Scrinium.
+# The app creates a config.toml on first start (path: Settings › Configuration file, bottom left).
+# Saving in the app rewrites the file; if it had comments, the old version stays as config.toml.<timestamp>.bak.
+
+# Root of the archive. Target folders are suggested relative to it.
+archive_root = "D:/Ablage"
+
+# File name from parts; empty parts are dropped along with their separator.
+# {date} document date · {doctype} document type · {sender} sender · {subject} subject (period first)
+# {person} person · {extra} extra · also {year} {month} {day}
+# Result e.g.: 260925_Steuerbescheid_Finanzamt_2025.pdf
+filename_template = "{date}_{doctype}_{sender}_{subject}_{person}_{extra}"
+# An unknown day or month becomes 00: 160100 (day unknown). Without a date, it is dropped along with "_".
+date_format = "%y%m%d"
+# Character rules: spaces and , ; : / | become "-"; other special characters such as & + # ( ) ' ! ? and dots are dropped.
+compact_filenames = true
+# Maximum length of the file name without the extension; the subject is shortened first, then the sender.
+max_filename_length = 80
+
+# How deep the existing folder structure is read and offered to the AI.
+scan_depth = 3
+
+# Folders that are not offered at all (with their subfolders).
+exclude = ["_Archiv_alt"]
+# Older notation for collection folders: the folder itself is offered to the AI, its subfolders are not.
+# When the settings open, Scrinium turns this into unticked subfolders (exclude).
+collapse = ["Wissen/Buecher"]
+
+# false: the AI must choose an existing folder. The app still creates year folders (e.g. Bank/2026)
+# if they continue a running series.
+allow_new_folders = false
+
+# Folder when nothing fits ("" = directly into the root).
+fallback_folder = "00_Eingang"
+
+# true: the original stays where it is; a copy is filed.
+copy_instead_of_move = false
+
+# Write title, subject, tags (document type, sender, person, year, folder) and the summary into the
+# file when filing – PDF, Word, Excel, PowerPoint and images. Explorer shows them under Details,
+# Windows Search finds them (e.g. "tags:Steuerbescheid").
+write_tags = true
+
+# On every filing, one line in decisions.jsonl next to this file: what Scrinium suggested
+# (folder and fields with their source) and what was filed. Stays on this computer;
+# scrinium --report shows which suggestions are often changed.
+log_decisions = true
+
+# Maximum number of pages analysed per document (speed).
+max_pages = 3
+
+# Program files keep their name ("est*" = anything starting with est).
+keep_name_extensions = ["pfx", "p12", "kdbx", "knxproj", "s07", "est*", "gew*", "ust*"]
+
+# Fixed list of document types (singular). Leave empty for free terms. A new configuration starts with a
+# longer German default list.
+doctypes = ["Rechnung", "Beitragsrechnung", "Kontoauszug", "Vertrag", "Kündigung", "Bescheid", "Steuerbescheid",
+            "Gehaltsabrechnung", "Zeugnis", "Urkunde", "Arztbrief", "Brief", "Schreiben", "Mitteilung", "Übersicht"]
+
+# Fixed extras for the last part. A new configuration starts with a German default list.
+extras = ["unterschrieben", "Kopie", "v2"]
+
+# true: the person goes into the name only if the target folder belongs to them (name in the path, e.g.
+# Arbeit/Gehalt/2026_Max). A bank statement in Bank/2026 gets no person. Rules with person always apply.
+person_from_folder = false
+
+# People; other spellings become the name (Max Mustermann → Max).
+[[persons]]
+name = "Max"
+aliases = ["Maximilian", "MM"]
+
+[[persons]]
+name = "Erika"
+
+# Short names for senders; the app removes legal forms (GmbH, AG …) anyway.
+[[senders]]
+name = "SWM"
+aliases = ["Stadtwerke Musterstadt"]
+
+# Custom template for a folder and everything below it.
+[[folder_templates]]
+folder = "Haushalt/Anleitungen"
+template = "{sender}_{subject}_Anleitung"
+
+# What belongs in a folder. The AI uses this to choose the folder level by level – it matters
+# most for the result, above all for the folders on the top level.
+[folder_notes]
+"Wohnung" = "Alles zur Wohnung: Miete, Nebenkosten, Handwerker"
+"Wohnung/Nebenkosten" = "Strom, Wasser, Müll, Heizung"
+"Versicherungen" = "Alle Schreiben von Versicherungen: Policen, Beitragsrechnungen, Kündigungen"
+"Steuern" = "Steuerbescheide (Steuerjahr im Betreff) und Schreiben vom Finanzamt"
+
+# Keywords, only when needed – they decide before the AI. Comma = or, " & " = and,
+# "-" in front = negative word (then the folder's keywords do not count), "*" at the end = longer words too.
+# If exactly one folder on a level matches, Scrinium takes it without the AI; if several match, the AI
+# decides. Keywords of a subfolder also count for its parent folders. {year} stands for a
+# series of year folders.
+[folder_words]
+"Versicherungen" = "Versicherungsschein, Police, -Kontoauszug"
+"Versicherungen/Haftpflicht" = "Haftpflicht*"
+"Steuern/Grundsteuer" = "Grundsteuer & Musterstadt, -Kontoauszug"
+"Arbeit/Gehalt/{year}_Max" = "Musterfirma GmbH"
+
+[ocr]
+# Languages of the documents as Tesseract codes, joined with + (deu, eng, fra, spa, ita, nld, pol …).
+# Each language is downloaded once; each extra one makes recognition a little slower.
+languages = "deu+eng"
+# "fast" (tessdata_fast, 1–4 MB per language) or "best" (tessdata_best, more accurate, about three times slower).
+quality = "fast"
+
+[llm]
+# false = without AI: text recognition, keywords, special rules and heuristics only.
+enabled = true
+# "embedded": the AI runs inside the program (llama.cpp, GPU through Vulkan – AMD too, without ROCm).
+# "server":   external OpenAI-compatible server such as LM Studio or Ollama.
+backend = "embedded"
+# In steps: first the AI describes the document, then it chooses the folder level by level
+# from the folder descriptions, and finally the details for the file name.
+# false = a single request with the whole folder list.
+folder_steps = true
+
+# --- Built-in AI ---
+# "" = automatic, to match the GPU; otherwise "qwen3-vl-2b", "qwen3-vl-4b" or "qwen3-vl-8b".
+# Download under Settings › AI › Model and graphics card or with: scrinium --download-model auto
+model_id = ""
+# Custom GGUF file instead of a model from the list (optional), with the image projector (mmproj) if needed.
+model_path = ""
+mmproj_path = ""
+# -1 = all layers on the GPU, 0 = processor only.
+gpu_layers = -1
+# Folder list, page image and text need 5000 to 9000 tokens, depending on the archive.
+context_size = 12288
+
+# --- External server (only with backend = "server") ---
+# LM Studio: http://localhost:1234/v1   Ollama: http://localhost:11434/v1
+base_url = "http://localhost:1234/v1"
+# Empty = use the first model loaded in the server.
+model = ""
+api_key = ""
+timeout_secs = 120
+
+# Send the page image to the vision model ("Also read the page image").
+use_vision = true
+# Maximum number of characters of the recognised text in the request.
+max_chars = 6000
+
+# Instructions for the details in the file name. What belongs in a folder goes in [folder_notes].
+instructions = """
+- Kontoauszug: Absender ist die Bank, Betreff der Monat (JJJJ-MM).
+- Steuerbescheide: Betreff ist das Steuerjahr.
+"""
+
+[scan]
+# "" = automatic: on Windows the TWAIN scanner (with the manufacturer's dialog), otherwise the
+# Windows dialog (WIA); on Linux the first SANE scanner. Or fixed: "twain:<scanner name>",
+# "wia" or "sane:<device>" (list under Settings › Scan or with: scrinium --scanner).
+device = ""
+# Where new scans go until they are filed. "" = the Downloads folder. When filed, a scan is
+# always moved (even with copy_instead_of_move), so it is no longer there afterwards.
+folder = ""
+# SANE (Linux) only – TWAIN and WIA ask in their own dialog.
+resolution = 300
+color = true
+# Processing after scanning (also chosen next to "Scan" in the main window as "Scan as"):
+# "bw" black on white (1 bit, smallest files) · "color" colour document, the paper turns white ·
+# "brochure" vivid colours · "photo" unchanged, not rotated and without text recognition. Except with
+# "photo", the pages are straightened.
+preset = "color"
+# Put the recognised text invisibly into the PDF: it becomes searchable, and the analysis skips text recognition.
+text_layer = true
+
+# Rules for special cases with unique features (account, contract, personnel number). They take
+# precedence over keywords and the AI. The order is the priority: the first matching rule wins.
+# {year} is the reference year (period in the subject, otherwise the document date).
+[[rules]]
+name = "Gehalt Max"
+# Personnel number on the payslip: unique, even if the employer changes.
+keywords = ["004711"]
+require_keywords = ["Personalnummer"]
+folder = "Arbeit/Gehalt/{year}_Max"
+doctype = "Gehaltsabrechnung"
+person = "Max"
+
+[[rules]]
+name = "Tagesgeld"
+# Account number of the savings account; statements of the current account at the same bank go elsewhere.
+keywords = ["DE00 1234 5678 0000 1111 22", "DE00123456780000111122"]
+folder = "Finanzen/Tagesgeld/{year}"

@@ -1,0 +1,16 @@
+* text=auto eol=lf
+*.sh    text eol=lf
+# cmd.exe handles labels wrongly with LF
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+# vcpkg applies the patches to sources with LF; with CRLF they do not fit.
+*.patch text eol=lf
+*.diff  text eol=lf
+# Never touch binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+*.ttf binary
+*.exe binary
+*.dll binary

@@ -1,0 +1,26 @@
+# Build
+/target
+/dist
+/lib
+/assets/tesseract/
+**/*.rs.bk
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# IDEs and agents
+.vscode/*
+.idea
+.cursor/
+.claude/
+CLAUDE.local.md
+
+# Operating system and NAS
+.DS_Store
+Thumbs.db
+Desktop.ini
+@eaDir/
+#recycle/
+__pycache__/

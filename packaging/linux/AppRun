@@ -1,0 +1,8 @@
+#!/bin/sh
+# Starts Scrinium in the AppImage.
+#
+# Unlike the AppRun of AppImageKit, it stays in the caller's folder (`Scrinium.AppImage ./scan.pdf`
+# finds the file) and sets no LD_LIBRARY_PATH: scrinium finds the bundled libraries through its
+# rpath, and programs it starts (scanimage, tesseract, the file manager) keep those of the system.
+here="$(dirname "$(readlink -f "$0")")"
+exec "$here/usr/bin/scrinium" "$@"

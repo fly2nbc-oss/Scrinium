@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Scrinium
+GenericName=Document Filing
+GenericName[de]=Dokumente einsortieren
+Comment=Analyse scanned documents locally, name them and file them
+Comment[de]=Gescannte Dokumente lokal analysieren, benennen und ablegen
+Exec=scrinium %F
+Icon=scrinium
+Terminal=false
+Categories=Office;Graphics;Scanning;OCR;
+MimeType=application/pdf;image/jpeg;image/png;image/tiff;
+Keywords=scan;pdf;archive;filing;ocr;documents;
+Keywords[de]=scan;pdf;Ablage;ablegen;ocr;Dokumente;
+StartupWMClass=scrinium

@@ -1,0 +1,139 @@
+[package]
+name = "scrinium"
+version = "1.0.0"
+edition = "2024"
+description = "Files scanned and digital documents into your folder archive with a local AI"
+license = "Apache-2.0"
+authors = ["fly2nbc-oss"]
+repository = "https://github.com/fly2nbc-oss/Scrinium"
+
+[dependencies]
+anyhow = "1.0.104"
+base64 = "0.23.1"
+chrono = "0.4.45"
+directories = "6"
+eframe = { version = "0.31", default-features = false, features = ["default_fonts", "glow", "x11", "wayland"] }
+flate2 = "1.1.10"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "tiff", "bmp", "webp"] }
+imageproc = { version = "0.25", default-features = false }
+libloading = "0.8.9"
+llama-cpp-2 = { version = "0.1.159", default-features = false, features = ["common", "mtmd", "openmp"] }
+# Writes properties (title, tags) into PDFs as an incremental update.
+lopdf = { version = "0.45", default-features = false }
+pdfium-render = { version = "0.8", default-features = false, features = ["thread_safe", "image", "pdfium_latest"] }
+regex = "1.13.1"
+rfd = "0.15"
+serde = { version = "1.0.229", features = ["derive"] }
+# preserve_order: the field order of the JSON schema sets the order in which the AI answers.
+serde_json = { version = "1.0.152", features = ["preserve_order"] }
+# Checksums of the Tesseract language data.
+sha2 = "0.11"
+# System language as the default for the UI.
+sys-locale = "0.3.2"
+tar = "0.4.46"
+toml = "0.8"
+# native-certs: the system's root certificates, so downloads also work behind antivirus software
+# or proxies that inspect HTTPS with their own certificate authority.
+ureq = { version = "2", features = ["json", "native-certs"] }
+walkdir = "2.5.0"
+# Office files (docx, xlsx, pptx, odt, ods, odp) are ZIP archives with XML.
+zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
+
+# Writes properties for Windows Search into images (property system as in Explorer).
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_Storage_EnhancedStorage",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_UI_Shell_PropertiesSystem",
+    # TWAIN: load TWAINDSM.dll, window and message loop for the scanner dialog, images as HGLOBAL.
+    "Win32_Graphics_Gdi",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
+    "Win32_UI_WindowsAndMessaging",
+    # Tesseract opens files in the ANSI code page: paths with umlauts as 8.3 names or in that code page.
+    "Win32_Globalization",
+    "Win32_Storage_FileSystem",
+] }
+
+# Embeds assets/icon.ico and the version info in the exe (via rc.exe from the Windows SDK).
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1.31"
+
+[features]
+default = ["vulkan"]
+# Vulkan runs on AMD (also without ROCm), NVIDIA and Intel on Windows and Linux.
+vulkan = ["llama-cpp-2/vulkan"]
+rocm = ["llama-cpp-2/rocm"]
+cuda = ["llama-cpp-2/cuda"]
+metal = ["llama-cpp-2/metal"]
+
+# Windows installer (NSIS via cargo-packager, see packaging/windows/build.ps1). It installs the folder that
+# build.ps1 prepares in dist/windows/Scrinium: exe, VC++ runtime, docs and licenses.
+[package.metadata.packager]
+product-name = "Scrinium"
+identifier = "io.github.fly2nbc-oss.scrinium"
+publisher = "fly2nbc-oss"
+authors = ["fly2nbc-oss <264691563+fly2nbc-oss@users.noreply.github.com>"]
+homepage = "https://github.com/fly2nbc-oss/Scrinium"
+category = "Productivity"
+formats = ["nsis"]
+binaries-dir = "dist/windows/Scrinium"
+out-dir = "dist/windows"
+resources = [
+    "dist/windows/Scrinium/*.dll",
+    "dist/windows/Scrinium/*.md",
+    "dist/windows/Scrinium/LICENSE",
+    "dist/windows/Scrinium/NOTICE",
+    "dist/windows/Scrinium/config.example.toml",
+    "dist/windows/Scrinium/licenses-tesseract",
+]
+
+# Per user into %LOCALAPPDATA%\Scrinium, without admin rights. Scrinium keeps its cache under the same folder
+# (scrinium\Scrinium\cache: models, language data, Tesseract). Uninstalling removes only the installed files;
+# settings and cache only when "Delete application data" is ticked.
+[package.metadata.packager.nsis]
+installer-icon = "assets/icon.ico"
+installer-mode = "currentUser"
+languages = ["English", "German", "French", "Spanish", "Italian"]
+custom-language-file = { German = "packaging/windows/German.nsh", Italian = "packaging/windows/Italian.nsh" }
+appdata-paths = ['$APPDATA\scrinium\Scrinium', '$LOCALAPPDATA\scrinium\Scrinium']
+
+# Linux package (cargo deb, see packaging/linux/build.sh).
+[package.metadata.deb]
+maintainer = "fly2nbc-oss <264691563+fly2nbc-oss@users.noreply.github.com>"
+copyright = "fly2nbc-oss and contributors"
+license-file = ["LICENSE", "0"]
+extended-description = """\
+Scrinium reads scanned letters, invoices and notices, suggests a file name and a folder in your \
+existing archive and files the document after you confirm. The AI (Qwen3-VL via llama.cpp, GPU \
+through Vulkan) runs inside the program; nothing leaves the computer."""
+section = "utils"
+priority = "optional"
+# The package version is the crate version, as in the file name.
+revision = ""
+# Scrinium loads libtesseract5 at run time (dlopen), so $auto does not see it.
+depends = "$auto, libvulkan1, libxkbcommon0, libxkbcommon-x11-0, libwayland-client0, libx11-6, libx11-xcb1, libxcursor1, libxi6, libxrandr2, libgl1, libtesseract5, tesseract-ocr-deu, tesseract-ocr-eng"
+# Vulkan graphics drivers, scanning via SANE, file dialogs, UI font.
+recommends = "mesa-vulkan-drivers, sane-utils, xdg-desktop-portal, fonts-dejavu-core | fonts-noto-core"
+assets = [
+    ["target/release/scrinium", "usr/bin/", "755"],
+    ["packaging/linux/scrinium.desktop", "usr/share/applications/", "644"],
+    ["assets/icon.png", "usr/share/icons/hicolor/256x256/apps/scrinium.png", "644"],
+    ["README.md", "usr/share/doc/scrinium/", "644"],
+    ["NOTICE", "usr/share/doc/scrinium/", "644"],
+    ["THIRD_PARTY.md", "usr/share/doc/scrinium/", "644"],
+    ["config.example.toml", "usr/share/doc/scrinium/", "644"],
+]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+# Otherwise OCR and image processing are unusably slow in debug builds.
+[profile.dev.package."*"]
+opt-level = 3

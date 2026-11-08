@@ -1,0 +1,257 @@
+name: CI
+
+# Every push and pull request: format, Clippy, tests and dependency checks (cargo deny) on Linux and
+# Windows, plus a lint of the workflows themselves. Pushes to main, tags `v*` and manual runs also build
+# the packages (kept 7 days as artifacts) and test them; a tag turns them into a draft release.
+# Pull requests skip the packages.
+#
+# Every action is pinned to a commit with its version as a comment; Dependabot (.github/dependabot.yml)
+# keeps them current.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths-ignore: ["**.md", "docs/**", "screenshots/**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+# Read only; only the release job may write contents.
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Lint, test, package (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      # Debug and release builds of llama.cpp plus cargo-deb filled the runner's disk
+      # ("No space left on device"); nothing here needs the preinstalled SDKs.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable branch, 2026-10-16
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      # llama.cpp is built with Vulkan: CMake, Clang for bindgen, Vulkan headers and glslc.
+      - name: System packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake clang libclang-dev libvulkan-dev glslc spirv-headers \
+            libxkbcommon-dev libwayland-dev libgl1-mesa-dev
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked
+      # Known vulnerabilities, licenses and sources of the dependencies (deny.toml).
+      - uses: taiki-e/install-action@68a389c788b2cd04016ce8c80ee23b80d2ab3d68 # v2.88.1
+        with:
+          tool: cargo-deny
+      - run: cargo deny --locked check
+      - name: Build release
+        if: github.event_name != 'pull_request'
+        run: cargo build --release --locked
+      - name: Package
+        if: github.event_name != 'pull_request'
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          dir="scrinium_${version}_linux_x86_64"
+          mkdir -p "dist/$dir"
+          cp target/release/scrinium README.md CHANGELOG.md LICENSE NOTICE THIRD_PARTY.md config.example.toml "dist/$dir/"
+          tar -C dist -czf "dist/$dir.tar.gz" "$dir"
+      # .deb (cargo-deb) and AppImage (linuxdeploy, appimagetool), see packaging/linux/build.sh.
+      - name: cargo-deb
+        if: github.event_name != 'pull_request'
+        run: |
+          sudo apt-get install -y patchelf desktop-file-utils
+          cargo install cargo-deb --version 3.8.0 --locked
+      - name: .deb and AppImage
+        if: github.event_name != 'pull_request'
+        run: bash packaging/linux/build.sh
+      # Install or unpack the packages and start them: the first line of --help names the version.
+      - name: Test packages
+        if: github.event_name != 'pull_request'
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          expect="Scrinium $version"
+          sudo apt-get install -y ./dist/linux/scrinium_"${version}"_amd64.deb
+          ldd /usr/bin/scrinium | tee ldd.txt
+          if grep -q "not found" ldd.txt; then echo "::error::.deb: library missing"; exit 1; fi
+          got=$(/usr/bin/scrinium --help | head -1)
+          if [ "$got" != "$expect" ]; then echo "::error::.deb reports: $got"; exit 1; fi
+          sudo apt-get remove -y scrinium
+          appimage="dist/linux/scrinium_${version}_x86_64.AppImage"
+          chmod +x "$appimage"
+          got=$(APPIMAGE_EXTRACT_AND_RUN=1 "$appimage" --help | head -1)
+          if [ "$got" != "$expect" ]; then echo "::error::AppImage reports: $got"; exit 1; fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: github.event_name != 'pull_request'
+        with:
+          name: linux
+          path: |
+            dist/*.tar.gz
+            dist/linux/*.deb
+            dist/linux/*.AppImage
+          if-no-files-found: error
+          retention-days: 7
+
+  workflows:
+    name: Lint workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: actionlint
+        env:
+          VERSION: 1.7.12
+          SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          file="actionlint_${VERSION}_linux_amd64.tar.gz"
+          curl -sSfL -o "$RUNNER_TEMP/$file" "https://github.com/rhysd/actionlint/releases/download/v$VERSION/$file"
+          echo "$SHA256  $RUNNER_TEMP/$file" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$file" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+      - uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
+        with:
+          advanced-security: false
+
+  windows:
+    name: Lint, test, package (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable branch, 2026-10-16
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Vulkan SDK
+        shell: pwsh
+        run: |
+          choco install vulkan-sdk -y --no-progress
+          $sdk = Get-ChildItem "C:\VulkanSDK" -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $sdk) { throw "Vulkan SDK not found under C:\VulkanSDK" }
+          echo "VULKAN_SDK=$($sdk.FullName)" >> $env:GITHUB_ENV
+          echo "$($sdk.FullName)\Bin" >> $env:GITHUB_PATH
+      # bindgen needs libclang; LLVM is preinstalled on the Windows runners.
+      - name: libclang
+        shell: pwsh
+        run: echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
+      # Tesseract (packaging/tesseract) from its release; build.rs embeds the DLL in scrinium.exe.
+      - name: Tesseract DLL
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/fetch-tesseract.ps1
+      # Everything in the release profile: llama.cpp (Vulkan shaders) is compiled once instead of
+      # twice; debug plus release builds exceeded the time limit.
+      - run: cargo clippy --release --all-targets --locked -- -D warnings
+      - run: cargo test --release --locked
+      - name: Build release
+        env:
+          SCRINIUM_REQUIRE_TESSERACT: "1"
+        run: cargo build --release --locked
+      # Installer (NSIS) via cargo-packager, settings in Cargo.toml.
+      - name: cargo-packager
+        if: github.event_name != 'pull_request'
+        run: cargo install cargo-packager --version 0.11.8 --locked
+      # Portable ZIP and installer with an app-local VC++ runtime, see packaging/windows/build.ps1.
+      - name: Package
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        run: ./packaging/windows/build.ps1
+      - name: Test installer
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        run: ./packaging/windows/test-installer.ps1 -Setup (Get-Item dist/scrinium_*_x64-setup.exe).FullName
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: github.event_name != 'pull_request'
+        with:
+          name: windows
+          path: |
+            dist/*_x64-setup.exe
+            dist/*_x64-portable.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Draft release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, workflows, windows]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable branch, 2026-10-16
+      - name: Tag matches Cargo.toml
+        id: version
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match the version in Cargo.toml ($version)"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          merge-multiple: true
+          path: release
+      # The Linux artifact carries .deb and AppImage in the subfolder linux/.
+      - name: Flatten files
+        run: |
+          find release -mindepth 2 -type f -exec mv -t release {} +
+          find release -mindepth 1 -type d -empty -delete
+          ls -la release
+      - name: Checksums and release notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          (cd release && sha256sum -- * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          awk -v v="$VERSION" '
+            /^## \[/ { if (found) exit; found = index($0, "## [" v "]") == 1; next }
+            found' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::CHANGELOG.md has no section ## [$VERSION]"
+            exit 1
+          fi
+          cat >> notes.md <<EOF
+
+          ### Downloads
+
+          | File | For |
+          |---|---|
+          | \`scrinium_${VERSION}_x64-setup.exe\` | Windows 10/11 – per-user installer, no admin rights; Start menu entry and uninstaller |
+          | \`scrinium_${VERSION}_x64-portable.zip\` | Windows 10/11 without installing – unpack and start \`Scrinium\\scrinium.exe\` |
+          | \`scrinium_${VERSION}_x86_64.AppImage\` | Linux portable – glibc 2.39 or newer (Ubuntu 24.04, Debian 13, Fedora 40 and newer) |
+          | \`scrinium_${VERSION}_amd64.deb\` | Ubuntu 24.04+, Debian 13+ – \`sudo apt install ./scrinium_${VERSION}_amd64.deb\` |
+          | \`scrinium_${VERSION}_linux_x86_64.tar.gz\` | Linux x86-64, the program file only (needs a Vulkan driver for the GPU) |
+
+          The app downloads the AI model (1.5 to 5.4 GB) on first setup under *Settings › AI*.
+          The Windows installer is not signed yet: SmartScreen asks once (*More info* → *Run anyway*).
+          On Linux, text recognition uses the system library: automatic with the \`.deb\`; for AppImage and \`.tar.gz\` on Ubuntu or Debian run \`sudo apt install libtesseract5 tesseract-ocr-deu tesseract-ocr-eng\`.
+          EOF
+      - name: Create draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh release create "$GITHUB_REF_NAME" release/* --draft --verify-tag --title "Scrinium $VERSION" --notes-file notes.md
