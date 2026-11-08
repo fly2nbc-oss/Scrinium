@@ -53,6 +53,6 @@ Documents, texts and file names stay on your computer; there is no telemetry. Sc
 
 ## More
 
-- File names: [`docs/filenames.md`](./docs/filenames.md) · Folder choice and rules: [`docs/archive.md`](./docs/archive.md) · AI and OCR: [`docs/ai.md`](./docs/ai.md) · Configuration and command line: [`docs/configuration.md`](./docs/configuration.md)
+- Command line: `scrinium --help` · Configuration: [`config.example.toml`](./config.example.toml)
 - Building and contributing: [`CONTRIBUTING.md`](./CONTRIBUTING.md) · Changes: [`CHANGELOG.md`](./CHANGELOG.md) · Security: [`SECURITY.md`](./SECURITY.md)
 - License: Apache 2.0 ([`LICENSE`](./LICENSE)), third-party components in [`THIRD_PARTY.md`](./THIRD_PARTY.md)

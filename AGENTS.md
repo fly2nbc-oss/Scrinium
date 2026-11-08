@@ -8,7 +8,7 @@ This project follows the latest version of two documents in the parent folder (o
 
 ## Rules
 
-- Code, comments and docs are English. The UI has five languages (`src/i18n/`, terms in `docs/glossary.md`).
+- Code, comments and docs are English. The UI has five languages (`src/i18n/`).
 - Text for the language model (prompts, option lists, schema descriptions) stays German on purpose. Everything that depends on the language of the documents (dates, doctypes, senders, legal forms, default doctypes) lives in `src/doclang/` – one file per document language, independent of the UI language in `src/i18n/`.
 - The program does not abort: `#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]` in `main.rs`; tests may (`clippy.toml`). Fixed regex patterns go through `heuristics::code_regex`.
 - Before every commit: format, Clippy without warnings, tests (commands below).
@@ -108,5 +108,5 @@ Tests live in their module (`#[cfg(test)]`) and need neither a model nor a GPU: 
 - A running `scrinium.exe` locks `target/release/scrinium.exe`. Often it is the user's test instance: do not stop it, rename the file instead (Windows allows that), then build.
 - Antivirus software with its own root CA breaks rustls with webpki roots: `ureq` therefore uses `native-certs`.
 - egui 0.31: `on_hover_text` shows only on enabled widgets, `on_disabled_hover_text` only on disabled ones. A widget that can be both needs both. `Sense::click()` takes keyboard focus; click areas use `egui::Sense::CLICK` without `FOCUSABLE` (R7); only checkboxes and fields stay focusable.
-- A push that changes only `*.md`, `docs/` or `screenshots/` starts no CI; tags always build.
+- A push that changes only `*.md` or `screenshots/` starts no CI; tags always build.
 - The *Vulkan SDK* step (Chocolatey) sometimes fails temporarily: `gh run rerun <id> --failed`.

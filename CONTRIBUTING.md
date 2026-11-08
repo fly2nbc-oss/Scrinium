@@ -60,7 +60,7 @@ The tests cover date recognition, heuristics, file names and templates, year fol
 
 ## Structure
 
-Modules, product decisions and pitfalls are in [`AGENTS.md`](AGENTS.md). The interface follows the shared design system of the desktop apps; `src/theme.rs` holds its values and components, and new views use these instead of the egui defaults. Words and patterns for the language of the documents (dates, document types, senders, legal forms) live in [`src/doclang/`](src/doclang/), one file per document language; Scrinium ships German, and another language is a new file with its own `DocLang`. Terms for the five interface languages are in [`docs/glossary.md`](docs/glossary.md).
+Modules, product decisions and pitfalls are in [`AGENTS.md`](AGENTS.md). The interface follows the shared design system of the desktop apps; `src/theme.rs` holds its values and components, and new views use these instead of the egui defaults. Words and patterns for the language of the documents (dates, document types, senders, legal forms) live in [`src/doclang/`](src/doclang/), one file per document language; Scrinium ships German, and another language is a new file with its own `DocLang`.
 
 ## Packages
 
@@ -69,7 +69,7 @@ Modules, product decisions and pitfalls are in [`AGENTS.md`](AGENTS.md). The int
 
 ## Continuous Integration
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, tags `v*` and by hand (*Actions → CI → Run workflow* or `gh workflow run CI`). A push that changes only `*.md`, `docs/` or `screenshots/` starts no run.
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, tags `v*` and by hand (*Actions → CI → Run workflow* or `gh workflow run CI`). A push that changes only `*.md` or `screenshots/` starts no run.
 
 - **Every run:** on Linux `cargo fmt --check`, Clippy without warnings, the tests and `cargo deny`; on Windows Clippy and the tests in the release profile; actionlint and zizmor check the workflows.
 - **Packages** (every run except pull requests): release build; for Linux `.tar.gz`, `.deb` and AppImage, for Windows portable ZIP and installer. The CI installs the installer silently, starts it and uninstalls it again (`packaging/windows/test-installer.ps1` – do not run it on your own computer); it installs or unpacks `.deb` and AppImage and starts them. Kept for 7 days as artifacts.
