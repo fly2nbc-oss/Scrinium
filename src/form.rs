@@ -276,8 +276,8 @@ fn value_cell(
 ) -> bool {
     let t = form_texts::t();
     let list = if choices.is_empty() { 0.0 } else { LIST_BUTTON };
-    // The field width counts without the inner padding.
-    let w = (width - list - CELL_MARGIN.sum().x).max(30.0);
+    // The field width includes the inner padding.
+    let w = (width - list).max(30.0 + CELL_MARGIN.sum().x);
     let mut changed = false;
     let behind = ui.painter().add(egui::Shape::Noop);
     let cell = ui.horizontal(|ui| {
@@ -755,7 +755,7 @@ fn footer_ui(ui: &mut egui::Ui, form: &mut Form, s: &analysis::Suggestion, ctx: 
                 (target, renamed)
             });
             ui.horizontal(|ui| {
-                let w = (ui.available_width() - 64.0 - 2.0 * theme::FIELD_MARGIN).max(80.0);
+                let w = (ui.available_width() - 64.0).max(80.0 + 2.0 * theme::FIELD_MARGIN);
                 let edit = TextEdit::singleline(&mut form.filename)
                     .font(egui::FontId::monospace(text::LARGE))
                     .desired_width(w);

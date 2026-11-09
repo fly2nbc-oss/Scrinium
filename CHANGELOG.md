@@ -7,6 +7,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versio
 
 ## [Unreleased]
 
+### Changed
+
+- eframe/egui 0.37 (was 0.31): sharper text with font hinting, and the Windows title bar follows the light or dark appearance.
+
 ## [1.0.1] – 2026-11-09
 
 Dependency updates: llama-cpp-2 0.1.160, lopdf 0.46, libloading 0.9, serde_json, sha2 and winresource; cargo-deny installer in CI 2.89.0.

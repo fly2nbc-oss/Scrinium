@@ -356,7 +356,7 @@ impl FolderView {
                 ui,
                 TextEdit::singleline(&mut self.filter)
                     .hint_text(theme::with_icon(theme::icon::SEARCH, t.search_hint))
-                    .desired_width(340.0),
+                    .desired_width(356.0),
             );
             if theme::ghost_button(ui, t.expand_all).clicked() {
                 self.expanded =
@@ -510,7 +510,7 @@ impl FolderView {
             };
             let edit = TextEdit::singleline(note)
                 .hint_text(if active { t.note_hint } else { "" })
-                .desired_width((ui.available_width() - words_w - gap - 2.0 * theme::FIELD_MARGIN).max(120.0));
+                .desired_width((ui.available_width() - words_w - gap).max(120.0 + 2.0 * theme::FIELD_MARGIN));
             let unused = if hidden_above { t.parent_unused } else { t.folder_unused };
             let resp = ui.add_enabled_ui(active, |ui| theme::field(ui, edit)).inner.on_disabled_hover_text(unused);
             if resp.changed() && index.is_none() && !scratch.is_empty() {
@@ -586,7 +586,7 @@ impl FolderView {
                     });
                     theme::field(
                         ui,
-                        TextEdit::singleline(&mut self.notes[i].1).desired_width(ui.available_width() - 40.0),
+                        TextEdit::singleline(&mut self.notes[i].1).desired_width(ui.available_width() - 24.0),
                     );
                     if theme::ghost_button(ui, &theme::icon::X.to_string()).on_hover_text(t.remove_note).clicked() {
                         remove_note = Some(i);
@@ -709,7 +709,7 @@ fn words_field(ui: &mut egui::Ui, words: &mut Vec<WordsDraft>, path: &str, width
         None => help.to_string(),
     };
     // No placeholder: in every empty row the example looked like content.
-    let edit = TextEdit::singleline(&mut entry.value).desired_width(width - 2.0 * theme::FIELD_MARGIN);
+    let edit = TextEdit::singleline(&mut entry.value).desired_width(width);
     let resp = theme::field(ui, edit).on_hover_text(hover);
     if resp.changed() && index.is_none() && !scratch.is_empty() {
         words.push(scratch);

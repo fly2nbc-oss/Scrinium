@@ -252,7 +252,7 @@ fn scan_section(ui: &mut egui::Ui, scan: &mut ScanConfig) {
     theme::labeled(ui, t.save_in, |ui| {
         ui.horizontal(|ui| {
             let default = crate::config::default_scan_folder().display().to_string();
-            theme::field(ui, egui::TextEdit::singleline(&mut scan.folder).hint_text(default).desired_width(360.0))
+            theme::field(ui, egui::TextEdit::singleline(&mut scan.folder).hint_text(default).desired_width(376.0))
                 .on_hover_text(t.save_in_hint);
             if ui.add(theme::secondary_button(t.browse)).clicked()
                 && let Some(dir) = rfd::FileDialog::new().set_title(t.folder_title).pick_folder()

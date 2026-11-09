@@ -107,6 +107,7 @@ Tests live in their module (`#[cfg(test)]`) and need neither a model nor a GPU: 
 - Locally on Windows check only the release profile; the debug build of llama.cpp fails with Visual Studio 18 and CMake 4. CI covers debug on Linux.
 - A running `scrinium.exe` locks `target/release/scrinium.exe`. Often it is the user's test instance: do not stop it, rename the file instead (Windows allows that), then build.
 - Antivirus software with its own root CA breaks rustls with webpki roots: `ureq` therefore uses `native-certs`.
-- egui 0.31: `on_hover_text` shows only on enabled widgets, `on_disabled_hover_text` only on disabled ones. A widget that can be both needs both. `Sense::click()` takes keyboard focus; click areas use `egui::Sense::CLICK` without `FOCUSABLE` (R7); only checkboxes and fields stay focusable.
+- egui: `on_hover_text` shows only on enabled widgets, `on_disabled_hover_text` only on disabled ones. A widget that can be both needs both. `Sense::click()` takes keyboard focus; click areas use `egui::Sense::CLICK` without `FOCUSABLE` (R7); only checkboxes and fields stay focusable.
+- egui 0.37: `TextEdit::desired_width` is the outer width, padding included (`theme::FIELD_MARGIN`). eframe does not paint a window that is covered or minimised; screenshots via `PrintWindow` then stay white.
 - A push that changes only `*.md` or `screenshots/` starts no CI; tags always build.
 - The *Vulkan SDK* step (Chocolatey) sometimes fails temporarily: `gh run rerun <id> --failed`.

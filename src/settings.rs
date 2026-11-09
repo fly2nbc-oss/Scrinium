@@ -674,7 +674,7 @@ fn folders_tab(ui: &mut egui::Ui, draft: &mut SettingsDraft) {
     let mut editing = false;
     theme::labeled(ui, t.archive_folder, |ui| {
         ui.horizontal(|ui| {
-            let w = (ui.available_width() - 150.0).clamp(200.0, 640.0);
+            let w = (ui.available_width() - 150.0).clamp(200.0, 640.0) + 2.0 * theme::FIELD_MARGIN;
             let resp = theme::field(ui, TextEdit::singleline(&mut c.archive_root).desired_width(w));
             editing |= resp.has_focus();
             if ui.add(theme::secondary_button(theme::with_icon(theme::icon::FOLDER_SEARCH, t.browse))).clicked()
@@ -797,7 +797,7 @@ fn names_tab(ui: &mut egui::Ui, draft: &mut SettingsDraft) {
         ui.horizontal_top(|ui| {
             theme::labeled(ui, t.date_format, |ui| {
                 let edit =
-                    TextEdit::singleline(&mut c.date_format).desired_width(120.0).font(egui::TextStyle::Monospace);
+                    TextEdit::singleline(&mut c.date_format).desired_width(136.0).font(egui::TextStyle::Monospace);
                 theme::field(ui, edit).on_hover_text(t.date_format_hint);
             });
             ui.add_space(16.0);
@@ -937,26 +937,24 @@ fn rule_fields(ui: &mut egui::Ui, rule: &mut RuleDraft, i: usize, folders: &[Str
     // Two columns with the label above the field: on the left what the rule matches, on the right what it sets.
     let gap = 24.0;
     let col = ((ui.available_width() - gap) / 2.0).max(220.0);
-    // Inner width of the fields: without their padding they would stick out of the column.
-    let inner = col - 2.0 * theme::FIELD_MARGIN;
     ui.horizontal_top(|ui| {
         ui.allocate_ui_with_layout(Vec2::new(col, 0.0), Layout::top_down(Align::Min), |ui| {
             ui.set_width(col);
             theme::labeled(ui, t.rule_name, |ui| {
-                theme::field(ui, TextEdit::singleline(&mut rule.name).hint_text(t.optional).desired_width(inner));
+                theme::field(ui, TextEdit::singleline(&mut rule.name).hint_text(t.optional).desired_width(col));
             });
             theme::labeled(ui, t.keywords, |ui| {
                 let edit = TextEdit::singleline(&mut rule.keywords).hint_text(t.keywords_placeholder);
-                theme::field(ui, edit.desired_width(inner)).on_hover_text(t.keywords_hint);
+                theme::field(ui, edit.desired_width(col)).on_hover_text(t.keywords_hint);
                 theme::checkbox(ui, &mut rule.match_all, t.match_all);
             });
             theme::labeled(ui, t.require, |ui| {
                 let edit = TextEdit::singleline(&mut rule.require).hint_text(t.require_placeholder);
-                theme::field(ui, edit.desired_width(inner)).on_hover_text(t.require_hint);
+                theme::field(ui, edit.desired_width(col)).on_hover_text(t.require_hint);
             });
             theme::labeled(ui, t.exclude, |ui| {
                 let edit = TextEdit::singleline(&mut rule.exclude).hint_text(t.exclude_placeholder);
-                theme::field(ui, edit.desired_width(inner)).on_hover_text(t.exclude_hint);
+                theme::field(ui, edit.desired_width(col)).on_hover_text(t.exclude_hint);
             });
         });
         ui.add_space(gap - ui.spacing().item_spacing.x);
@@ -964,7 +962,7 @@ fn rule_fields(ui: &mut egui::Ui, rule: &mut RuleDraft, i: usize, folders: &[Str
             ui.set_width(col);
             theme::labeled(ui, t.target_folder, |ui| {
                 ui.horizontal(|ui| {
-                    let w = inner - 80.0 - ui.spacing().item_spacing.x;
+                    let w = col - 80.0 - ui.spacing().item_spacing.x;
                     let edit = TextEdit::singleline(&mut rule.folder).hint_text(t.target_folder_placeholder);
                     theme::field(ui, edit.desired_width(w));
                     let pick = theme::combo(("rule-folder", i)).selected_text(t.folder_pick).width(80.0).height(320.0);
@@ -979,7 +977,7 @@ fn rule_fields(ui: &mut egui::Ui, rule: &mut RuleDraft, i: usize, folders: &[Str
                 });
             });
             theme::labeled(ui, t.sets, |ui| {
-                let w = (col - 2.0 * ui.spacing().item_spacing.x) / 3.0 - 2.0 * theme::FIELD_MARGIN;
+                let w = (col - 2.0 * ui.spacing().item_spacing.x) / 3.0;
                 ui.horizontal(|ui| {
                     theme::field(
                         ui,
@@ -1027,13 +1025,13 @@ fn ai_tab(ui: &mut egui::Ui, draft: &mut SettingsDraft, local_ai: &mut LocalAi, 
         } else {
             ui.horizontal_top(|ui| {
                 theme::labeled(ui, t.server_url, |ui| {
-                    theme::field(ui, TextEdit::singleline(&mut c.llm.base_url).desired_width(320.0));
+                    theme::field(ui, TextEdit::singleline(&mut c.llm.base_url).desired_width(336.0));
                 });
                 ui.add_space(16.0);
                 theme::labeled(ui, t.model, |ui| {
                     ui.horizontal(|ui| {
                         let edit = TextEdit::singleline(&mut c.llm.model).hint_text(t.model_placeholder);
-                        theme::field(ui, edit.desired_width(240.0));
+                        theme::field(ui, edit.desired_width(256.0));
                         if let Some(Ok(models)) = &draft.test_result {
                             theme::combo("model-pick").selected_text(t.model_list).width(70.0).show_ui(ui, |ui| {
                                 for m in models {
@@ -1049,7 +1047,7 @@ fn ai_tab(ui: &mut egui::Ui, draft: &mut SettingsDraft, local_ai: &mut LocalAi, 
             ui.horizontal_top(|ui| {
                 theme::labeled(ui, t.api_key, |ui| {
                     let edit = TextEdit::singleline(&mut c.llm.api_key).password(true).hint_text(t.api_key_placeholder);
-                    theme::field(ui, edit.desired_width(320.0));
+                    theme::field(ui, edit.desired_width(336.0));
                 });
                 ui.add_space(16.0);
                 theme::labeled(ui, t.timeout, |ui| {
@@ -1165,7 +1163,7 @@ fn ocr_languages(ui: &mut egui::Ui, ocr: &mut OcrConfig) {
     let mut buffer = ui.data(|d| d.get_temp::<String>(id)).unwrap_or(extras);
     ui.horizontal(|ui| {
         ui.label(RichText::new(t.ocr_more).color(muted()));
-        let resp = theme::field(ui, TextEdit::singleline(&mut buffer).hint_text("nld+pol").desired_width(160.0))
+        let resp = theme::field(ui, TextEdit::singleline(&mut buffer).hint_text("nld+pol").desired_width(176.0))
             .on_hover_text(t.ocr_more_hint);
         if resp.changed() {
             list.retain(|c| known(c));

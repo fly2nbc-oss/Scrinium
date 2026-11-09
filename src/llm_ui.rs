@@ -345,7 +345,7 @@ fn advanced_ui(ui: &mut egui::Ui, cfg: &mut LlmConfig) {
 
 fn path_field(ui: &mut egui::Ui, value: &mut String, hint: &str, title: &str) {
     ui.horizontal(|ui| {
-        theme::field(ui, TextEdit::singleline(value).hint_text(hint).desired_width(280.0));
+        theme::field(ui, TextEdit::singleline(value).hint_text(hint).desired_width(296.0));
         if ui.button("…").clicked()
             && let Some(p) = rfd::FileDialog::new().set_title(title).add_filter("GGUF", &["gguf"]).pick_file()
         {

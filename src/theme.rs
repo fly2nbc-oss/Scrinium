@@ -408,6 +408,8 @@ pub fn apply(ctx: &egui::Context, mode: Mode) {
             s.spacing.interact_size.y = CONTROL;
             s.spacing.icon_spacing = space::S2;
             s.spacing.menu_margin = Margin::same(space::S1 as i8);
+            // No fading at the edges of scroll areas: faded text would look disabled (R2).
+            s.spacing.scroll.fade.strength = 0.0;
             for (style, size) in [
                 (egui::TextStyle::Body, text::BODY),
                 (egui::TextStyle::Button, text::BODY),
@@ -698,7 +700,7 @@ pub fn focus_ring(ui: &egui::Ui, rect: egui::Rect, corner: u8) {
     ui.painter().rect_stroke(ring, corner.saturating_add(3), stroke, egui::StrokeKind::Inside);
 }
 
-/// Padding of input fields; the width of a field (`desired_width`) does not include it.
+/// Padding of input fields; the width of a field (`desired_width`) includes it.
 pub const FIELD_MARGIN: f32 = space::S2;
 
 /// Input field: 32 px high, recessed, border `line_strong` (border rule), when focused an accent border and ring.

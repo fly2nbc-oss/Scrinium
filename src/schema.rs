@@ -206,7 +206,7 @@ fn add_menu(ui: &mut egui::Ui, blocks: &[Block]) -> Option<Block> {
         ui.label(theme::field_label(t.own_text));
         let mut own: String = ui.data(|d| d.get_temp(text_id)).unwrap_or_default();
         let resp =
-            theme::field(ui, TextEdit::singleline(&mut own).hint_text(t.own_text_placeholder).desired_width(200.0));
+            theme::field(ui, TextEdit::singleline(&mut own).hint_text(t.own_text_placeholder).desired_width(216.0));
         let clean = own.trim().replace(['{', '}'], "");
         let enter = resp.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
         if !clean.is_empty() && (ui.button(t.add).clicked() || enter) {
@@ -249,7 +249,7 @@ pub fn text_row(ui: &mut egui::Ui, template: &mut String) {
             ui,
             TextEdit::singleline(template)
                 .font(egui::TextStyle::Monospace)
-                .desired_width(470.0)
+                .desired_width(486.0)
                 .hint_text("{date}_{doctype}_{sender}"),
         )
         .on_hover_text(t.template_hint);
