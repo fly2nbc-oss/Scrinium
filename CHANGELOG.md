@@ -7,6 +7,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versio
 
 ## [Unreleased]
 
+## [1.1.0] – 2026-11-09
+
+User interface on eframe/egui 0.37.
+
 ### Changed
 
 - eframe/egui 0.37 (was 0.31): sharper text with font hinting, and the Windows title bar follows the light or dark appearance.
