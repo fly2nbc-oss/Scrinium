@@ -30,7 +30,7 @@ const TAB_BAR_PADDING: f32 = 2.0 * 12.0 + 2.0 * theme::space::S3;
 /// depends only on language and font, so it does not jump when switching tabs (R1).
 fn tab_bar_width(ctx: &egui::Context, labels: &[&str]) -> f32 {
     let font = egui::FontId::new(text::LARGE, theme::semibold());
-    let widest = ctx.fonts(|f| {
+    let widest = ctx.fonts_mut(|f| {
         labels
             .iter()
             .map(|l| f.layout_no_wrap(l.to_string(), font.clone(), egui::Color32::WHITE).size().x)
@@ -386,7 +386,7 @@ const CONTENT_MAX_WIDTH: f32 = 1400.0;
 /// height, Save and Cancel at the bottom. Returns the chosen action (save, cancel, reload, set up).
 /// Before the call only the bars at the top and bottom are placed; this view fills the rest.
 pub fn view(
-    ctx: &egui::Context,
+    root: &mut egui::Ui,
     draft: &mut SettingsDraft,
     local_ai: &mut LocalAi,
     setup: &mut setup::Panel,
@@ -394,6 +394,7 @@ pub fn view(
     config_path: &Path,
     app: AppState,
 ) -> Option<SettingsAction> {
+    let ctx = &root.ctx().clone();
     let ai = app.ai;
     let t = t();
     let mut action = None;
@@ -411,7 +412,7 @@ pub fn view(
     }
     let dirty = draft.is_dirty();
     let problems = problems(draft);
-    egui::TopBottomPanel::bottom("settings-actions").frame(theme::bar_frame(&ctx.style())).show(ctx, |ui| {
+    egui::Panel::bottom("settings-actions").frame(theme::bar_frame(&ctx.global_style())).show(root, |ui| {
         for p in &problems {
             ui.horizontal(|ui| {
                 ui.label(theme::icon_text(theme::icon::WARN, 16.0, status_warn()));
@@ -433,11 +434,11 @@ pub fn view(
                 ui.label(RichText::new(config_path.display().to_string()).small().color(muted()));
                 if ui.button(t.open_in_editor).clicked() {
                     open_path(config_path);
-                    ui.close_menu();
+                    ui.close();
                 }
                 if ui.button(t.reload_discard).clicked() {
                     action = draft.request_leave(Leave::Reload);
-                    ui.close_menu();
+                    ui.close();
                 }
             });
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -477,11 +478,11 @@ pub fn view(
     }
     let setup_label = theme::with_icon(theme::icon::SPARKLES, Tab::Setup.label());
     let labels: Vec<&str> = Tab::MAIN.iter().map(|tab| tab.label()).chain([setup_label.as_str()]).collect();
-    egui::SidePanel::left("settings-tabs")
+    egui::Panel::left("settings-tabs")
         .resizable(false)
-        .exact_width(tab_bar_width(ctx, &labels))
-        .frame(theme::bar_frame(&ctx.style()))
-        .show(ctx, |ui| {
+        .exact_size(tab_bar_width(ctx, &labels))
+        .frame(theme::bar_frame(&ctx.global_style()))
+        .show(root, |ui| {
             ui.add_space(4.0);
             ui.label(RichText::new(t.title).size(text::VALUE).family(theme::semibold()));
             ui.add_space(12.0);
@@ -499,7 +500,7 @@ pub fn view(
                 draft.tab = Tab::Setup;
             }
         });
-    egui::CentralPanel::default().frame(theme::canvas_frame(&ctx.style())).show(ctx, |ui| {
+    egui::CentralPanel::default().frame(theme::canvas_frame(&ctx.global_style())).show(root, |ui| {
         if draft.tab == Tab::Archive {
             // Own scroll bar only for the folder rows: the archive folder and the column headers stay in place.
             let w = ui.available_width().min(CONTENT_MAX_WIDTH);
@@ -596,7 +597,7 @@ fn leave_dialog(ctx: &egui::Context, draft: &mut SettingsDraft) -> Option<Settin
         Leave::Quit => t.quit,
     };
     let enter = theme::dialog_enter(ctx);
-    let modal = theme::dialog(egui::Id::new("settings-leave")).show(ctx, |ui| {
+    let modal = theme::dialog(egui::Id::unique("settings-leave")).show(ctx, |ui| {
         ui.set_width(420.0);
         ui.label(theme::dialog_title(t.unsaved));
         ui.add_space(8.0);
@@ -633,7 +634,7 @@ fn conflict_dialog(ctx: &egui::Context, draft: &mut SettingsDraft) -> Option<Set
     let t = t();
     let mut action = None;
     let enter = theme::dialog_enter(ctx);
-    let modal = theme::dialog(egui::Id::new("settings-conflict")).show(ctx, |ui| {
+    let modal = theme::dialog(egui::Id::unique("settings-conflict")).show(ctx, |ui| {
         ui.set_width(460.0);
         ui.label(theme::dialog_title(t.conflict_title));
         ui.add_space(8.0);
@@ -1159,7 +1160,7 @@ fn ocr_languages(ui: &mut egui::Ui, ocr: &mut OcrConfig) {
     });
 
     // Own buffer while the field has focus: a started "nld+" stays while typing.
-    let id = ui.id().with("ocr-more");
+    let id = ui.scope_id().with("ocr-more");
     let extras = list.iter().filter(|c| !known(c)).cloned().collect::<Vec<_>>().join("+");
     let mut buffer = ui.data(|d| d.get_temp::<String>(id)).unwrap_or(extras);
     ui.horizontal(|ui| {
@@ -1200,7 +1201,7 @@ mod tests {
         use crate::i18n::settings::{DE, EN, ES, FR, IT};
         let ctx = egui::Context::default();
         theme::apply(&ctx, theme::Mode::Light);
-        let _ = ctx.run(Default::default(), |_| {});
+        let _ = ctx.run_ui(Default::default(), |_| {});
         let font = egui::FontId::new(text::LARGE, theme::semibold());
         for (lang, t) in [("de", &DE), ("en", &EN), ("fr", &FR), ("es", &ES), ("it", &IT)] {
             let setup = theme::with_icon(theme::icon::SPARKLES, t.setup_with_ai);
@@ -1209,7 +1210,7 @@ mod tests {
             assert!(bar <= 240.0, "{lang}: tab bar {bar:.0} px wide, at most 240 px");
             for label in labels {
                 let width =
-                    ctx.fonts(|f| f.layout_no_wrap(label.to_string(), font.clone(), egui::Color32::WHITE).size().x);
+                    ctx.fonts_mut(|f| f.layout_no_wrap(label.to_string(), font.clone(), egui::Color32::WHITE).size().x);
                 let room = bar - TAB_BAR_PADDING;
                 assert!(width * 1.05 <= room, "{lang}: \"{label}\" needs {width:.0} px, room is {room:.0} px");
             }

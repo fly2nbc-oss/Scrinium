@@ -1072,7 +1072,9 @@ fn pick_folder() -> Option<PathBuf> {
 }
 
 impl eframe::App for ScriniumApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, root: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let ctx = root.ctx().clone();
+        let ctx = &ctx;
         theme::sync(ctx);
         self.handle_events(ctx);
         self.pump_queue();
@@ -1085,7 +1087,9 @@ impl eframe::App for ScriniumApp {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
         }
 
-        let dropped: Vec<PathBuf> = ctx.input(|i| i.raw.dropped_files.iter().filter_map(|f| f.path.clone()).collect());
+        let dropped: Vec<PathBuf> = ctx.input(|i| {
+            i.raw.dropped_files.iter().map(|f| f.path().to_path_buf()).filter(|p| !p.as_os_str().is_empty()).collect()
+        });
         if !dropped.is_empty() {
             self.add_files(dropped);
         }
@@ -1098,7 +1102,7 @@ impl eframe::App for ScriniumApp {
         self.shortcuts(ctx);
 
         self.request_preview();
-        self.status_bar(ctx);
+        self.status_bar(ctx, root);
         // The settings replace queue and document until they are saved or discarded.
         if let Some(draft) = &mut self.settings {
             self.local_ai.ensure_gpu_checked(ctx);
@@ -1113,7 +1117,7 @@ impl eframe::App for ScriniumApp {
                 LlmStatus::Disabled => settings::AiStatus { ready: false, text: t.ai_status_off.into() },
             };
             if let Some(action) = settings::view(
-                ctx,
+                root,
                 draft,
                 &mut self.local_ai,
                 &mut self.setup,
@@ -1125,9 +1129,9 @@ impl eframe::App for ScriniumApp {
             }
         } else {
             if !self.docs.is_empty() && !self.queue_hidden {
-                self.queue_panel(ctx);
+                self.queue_panel(ctx, root);
             }
-            egui::CentralPanel::default().frame(theme::canvas_frame(&ctx.style())).show(ctx, |ui| {
+            egui::CentralPanel::default().frame(theme::canvas_frame(&ctx.global_style())).show(root, |ui| {
                 let area = ui.max_rect();
                 if self.docs.is_empty() {
                     self.empty_state(ui);
@@ -1221,7 +1225,7 @@ impl ScriniumApp {
     fn settings_corner(&mut self, ui: &mut egui::Ui, area: egui::Rect) {
         let size = Vec2::splat(theme::ARROW_BUTTON);
         let rect = egui::Rect::from_min_size(area.right_top() - egui::vec2(size.x, 0.0), size);
-        let resp = ui.interact(rect, Id::new("settings-corner"), egui::Sense::CLICK);
+        let resp = ui.interact(rect, Id::unique("settings-corner"), egui::Sense::CLICK);
         theme::paint_icon_button(ui, rect, &resp, icon::SETTINGS, 20.0, true);
         let newer = self.updates.newer();
         if newer.is_some() {
@@ -1270,8 +1274,8 @@ impl ScriniumApp {
             false => (tokens::surface_raised(), tokens::line(), tokens::fg(), icon::OK),
         };
         let glyph_color = if toast.error { status_err() } else { status_ok() };
-        let max_w = (ctx.screen_rect().width() - 160.0).clamp(240.0, 640.0);
-        let resp = egui::Area::new(Id::new("notice"))
+        let max_w = (ctx.content_rect().width() - 160.0).clamp(240.0, 640.0);
+        let resp = egui::Area::new(Id::unique("notice"))
             .order(Order::Foreground)
             .anchor(Align2::CENTER_TOP, Vec2::new(0.0, 16.0))
             .show(ctx, |ui| {
@@ -1329,10 +1333,10 @@ impl ScriniumApp {
     /// counters; on the right, the last filed document with *Undo*, the AI status and the archive. Messages do not
     /// go here (they would move the buttons) but appear as a notice above the content. The gear at the top right
     /// opens the settings.
-    fn status_bar(&mut self, ctx: &egui::Context) {
+    fn status_bar(&mut self, ctx: &egui::Context, root: &mut egui::Ui) {
         let mut undo = false;
         let t = window::t();
-        egui::TopBottomPanel::bottom("status").frame(theme::status_frame(&ctx.style())).show(ctx, |ui| {
+        egui::Panel::bottom("status").frame(theme::status_frame(&ctx.global_style())).show(root, |ui| {
             ui.horizontal(|ui| {
                 if self.settings.is_some() {
                     let back = theme::with_icon(icon::CHEVRON_LEFT, t.back_to_documents);
@@ -1405,13 +1409,13 @@ impl ScriniumApp {
         }
     }
 
-    fn queue_panel(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::left("queue")
+    fn queue_panel(&mut self, ctx: &egui::Context, root: &mut egui::Ui) {
+        egui::Panel::left("queue")
             .resizable(true)
-            .default_width(320.0)
-            .width_range(220.0..=420.0)
-            .frame(theme::bar_frame(&ctx.style()))
-            .show(ctx, |ui| {
+            .default_size(320.0)
+            .size_range(220.0..=420.0)
+            .frame(theme::bar_frame(&ctx.global_style()))
+            .show(root, |ui| {
                 // Add more documents: above the list, where they land. Three buttons of equal width; if the words
                 // with icon do not fit (longer languages, narrow list), the icons are dropped, and only then does
                 // the last button wrap to the next row.
@@ -1570,7 +1574,7 @@ impl ScriniumApp {
                                     });
                                 })
                                 .response;
-                            let resp = ui.interact(resp.rect, Id::new(("doc", doc.id)), egui::Sense::CLICK);
+                            let resp = ui.interact(resp.rect, Id::unique(("doc", doc.id)), egui::Sense::CLICK);
                             if resp.clicked() {
                                 clicked = Some(doc.id);
                             }
@@ -2066,7 +2070,7 @@ fn discard_dialog(ctx: &egui::Context, action: Action) -> Option<bool> {
     let what = if action == Action::Remove { t.remove_from_list } else { t.reanalyze };
     let mut answer = None;
     let enter = theme::dialog_enter(ctx);
-    let modal = theme::dialog(Id::new("discard-edits")).show(ctx, |ui| {
+    let modal = theme::dialog(Id::unique("discard-edits")).show(ctx, |ui| {
         ui.set_width(400.0);
         ui.label(theme::dialog_title(t.discard_title));
         ui.add_space(8.0);
@@ -2113,8 +2117,8 @@ fn drop_overlay(ctx: &egui::Context) {
         return;
     }
     // Dimmed as behind a dialog card; the prompt sits on a card with an accent border.
-    let painter = ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("drop-overlay")));
-    let rect = ctx.screen_rect();
+    let painter = ctx.layer_painter(LayerId::new(Order::Foreground, Id::unique("drop-overlay")));
+    let rect = ctx.content_rect();
     painter.rect_filled(rect, 0.0, tokens::scrim());
     let font = FontId::new(text::TITLE, theme::semibold());
     let galley = painter.layout_no_wrap(window::t().drop_release.to_string(), font, tokens::fg());

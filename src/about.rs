@@ -58,7 +58,7 @@ fn paragraph(ui: &mut egui::Ui, s: &str) {
 
 /// The app icon as a texture, loaded once.
 fn app_icon(ui: &egui::Ui) -> egui::TextureHandle {
-    let id = Id::new("app-icon-texture");
+    let id = Id::unique("app-icon-texture");
     if let Some(tex) = ui.data(|d| d.get_temp::<egui::TextureHandle>(id)) {
         return tex;
     }
@@ -67,7 +67,7 @@ fn app_icon(ui: &egui::Ui) -> egui::TextureHandle {
             let rgba = img.to_rgba8();
             egui::ColorImage::from_rgba_unmultiplied([rgba.width() as usize, rgba.height() as usize], rgba.as_raw())
         }
-        Err(_) => egui::ColorImage::new([1, 1], Color32::TRANSPARENT),
+        Err(_) => egui::ColorImage::filled([1, 1], Color32::TRANSPARENT),
     };
     let tex = ui.ctx().load_texture("app-icon", image, egui::TextureOptions::LINEAR);
     ui.data_mut(|d| d.insert_temp(id, tex.clone()));
@@ -202,7 +202,7 @@ pub fn question(ctx: &egui::Context) -> Option<bool> {
     let t = general::t();
     let mut answer = None;
     let enter = theme::dialog_enter(ctx);
-    theme::dialog(Id::new("update-question")).show(ctx, |ui| {
+    theme::dialog(Id::unique("update-question")).show(ctx, |ui| {
         ui.set_width(420.0);
         ui.label(theme::dialog_title(t.update_ask_title));
         ui.add_space(8.0);

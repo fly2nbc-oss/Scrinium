@@ -129,7 +129,7 @@ mod tests {
     use eframe::egui::{ColorImage, Context, TextureOptions};
 
     fn texture(ctx: &Context, name: &str) -> TextureHandle {
-        ctx.load_texture(name, ColorImage::new([2, 3], eframe::egui::Color32::WHITE), TextureOptions::LINEAR)
+        ctx.load_texture(name, ColorImage::filled([2, 3], eframe::egui::Color32::WHITE), TextureOptions::LINEAR)
     }
 
     fn loaded(cache: &PageCache) -> Vec<usize> {

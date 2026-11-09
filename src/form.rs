@@ -282,29 +282,34 @@ fn value_cell(
     let behind = ui.painter().add(egui::Shape::Noop);
     let cell = ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
-        let edit =
-            ui.add(TextEdit::singleline(value).hint_text(hint).frame(false).margin(CELL_MARGIN).desired_width(w));
+        let edit = ui.add(
+            TextEdit::singleline(value)
+                .hint_text(hint)
+                .frame(egui::Frame::NONE.inner_margin(CELL_MARGIN))
+                .desired_width(w),
+        );
         changed |= edit.changed();
         if !choices.is_empty() {
             let arrow = egui::Button::new(theme::icon_text(theme::icon::CHEVRON_DOWN, theme::ICON_INLINE, muted()))
                 .frame(false)
                 .min_size(Vec2::new(LIST_BUTTON, ROW_H));
-            egui::menu::menu_custom_button(ui, arrow, |ui| {
-                theme::list_style(ui);
-                ui.set_min_width(220.0);
-                ScrollArea::vertical().id_salt(("choices", id)).max_height(380.0).show(ui, |ui| {
-                    for c in choices {
-                        let shown = if c.is_empty() { t.empty_choice } else { c.as_str() };
-                        if ui.selectable_label(value == c, shown).clicked() {
-                            *value = c.clone();
-                            changed = true;
-                            ui.close_menu();
+            egui::containers::menu::MenuButton::from_button(arrow)
+                .ui(ui, |ui| {
+                    theme::list_style(ui);
+                    ui.set_min_width(220.0);
+                    ScrollArea::vertical().id_salt(("choices", id)).max_height(380.0).show(ui, |ui| {
+                        for c in choices {
+                            let shown = if c.is_empty() { t.empty_choice } else { c.as_str() };
+                            if ui.selectable_label(value == c, shown).clicked() {
+                                *value = c.clone();
+                                changed = true;
+                                ui.close();
+                            }
                         }
-                    }
-                });
-            })
-            .response
-            .on_hover_text(t.pick_from_list);
+                    });
+                })
+                .0
+                .on_hover_text(t.pick_from_list);
         }
         edit.has_focus()
     });
@@ -404,7 +409,7 @@ pub fn form_ui(ui: &mut egui::Ui, form: &mut Form, analysis: &Analysis, ctx: For
     let root = cfg.archive_root();
     let mut action = None;
     // Footer height from the last frame: this way the fields get the rest.
-    let footer_id = egui::Id::new(("form-footer", doc_id));
+    let footer_id = egui::Id::unique(("form-footer", doc_id));
     let footer_h: f32 = ui.data(|d| d.get_temp(footer_id)).unwrap_or(300.0);
     let fields_h = (ui.available_height() - footer_h - 12.0).max(120.0);
 
@@ -468,7 +473,7 @@ pub fn form_ui(ui: &mut egui::Ui, form: &mut Form, analysis: &Analysis, ctx: For
         if !s.summary.is_empty() {
             // Summary at most two lines; all of it when expanded. Otherwise the fields would hardly get any room.
             ui.add_space(4.0);
-            let open_id = egui::Id::new(("summary-open", doc_id));
+            let open_id = egui::Id::unique(("summary-open", doc_id));
             let mut open: bool = ui.data(|d| d.get_temp(open_id)).unwrap_or(false);
             egui::Frame::new()
                 .fill(tokens::surface_muted())
@@ -488,7 +493,7 @@ pub fn form_ui(ui: &mut egui::Ui, form: &mut Form, analysis: &Analysis, ctx: For
                         break_anywhere: false,
                         overflow_character: Some('…'),
                     };
-                    let galley = ui.fonts(|f| f.layout_job(job));
+                    let galley = ui.fonts_mut(|f| f.layout_job(job));
                     let long = open || galley.elided;
                     // Clicking the text expands and collapses it; a separate line for that would cost space.
                     let sense = if long { egui::Sense::CLICK } else { egui::Sense::hover() };
@@ -599,7 +604,7 @@ fn footer_ui(ui: &mut egui::Ui, form: &mut Form, s: &analysis::Suggestion, ctx: 
     // on hover; a click expands them below the folder (remembered per document until Scrinium closes).
     let mut why: Vec<String> = s.folder_why.iter().map(|r| format!("• {r}")).collect();
     why.extend(analysis::folder_note(&cfg.folder_notes, &form.folder).map(|n| (t.why_note)(n)));
-    let why_id = egui::Id::new(("why-open", doc_id));
+    let why_id = egui::Id::unique(("why-open", doc_id));
     let mut why_open = ui.data(|d| d.get_temp::<bool>(why_id)).unwrap_or(false);
     // Filing target as its own card: folder and file name are the result you check before filing.
     egui::Frame::new()
@@ -856,7 +861,7 @@ fn footer_ui(ui: &mut egui::Ui, form: &mut Form, s: &analysis::Suggestion, ctx: 
 /// (no metadata, cloud sync placeholders stay untouched).
 /// `None` if the folder does not exist (yet) or cannot be read.
 fn folder_listing(ui: &egui::Ui, dir: &Path) -> Option<Arc<Vec<String>>> {
-    let id = egui::Id::new(("folder-files", dir));
+    let id = egui::Id::unique(("folder-files", dir));
     let now = ui.input(|i| i.time);
     if let Some((at, list)) = ui.data(|d| d.get_temp::<(f64, Option<Arc<Vec<String>>>)>(id))
         && now - at < 2.0
@@ -899,8 +904,8 @@ fn folder_files(ui: &mut egui::Ui, root: &Path, form: &Form, ext: &str, doc_id: 
         return;
     }
     // Open by itself only in tall windows; otherwise the list would take the room of the suggestion's values.
-    let open_id = egui::Id::new("folder-files-open");
-    let tall = ui.ctx().screen_rect().height() >= 1000.0;
+    let open_id = egui::Id::unique("folder-files-open");
+    let tall = ui.ctx().content_rect().height() >= 1000.0;
     let mut open: bool = ui.data(|d| d.get_temp(open_id)).unwrap_or(tall);
     let count = (t.files_in_folder)(files.len());
     let chevron = if open { theme::icon::CHEVRON_DOWN } else { theme::icon::CHEVRON_RIGHT };
@@ -923,7 +928,7 @@ fn folder_files(ui: &mut egui::Ui, root: &Path, form: &Form, ext: &str, doc_id: 
         rows.insert(at, (new.as_str(), true));
     }
     // Scroll to the new name when it has changed – otherwise the list could not be scrolled by hand.
-    let seen_id = egui::Id::new(("folder-files-seen", doc_id));
+    let seen_id = egui::Id::unique(("folder-files-seen", doc_id));
     let key = format!("{}/{}", dir.display(), new.as_deref().unwrap_or_default());
     let scroll = ui.data(|d| d.get_temp::<String>(seen_id)).as_deref() != Some(key.as_str());
     egui::Frame::new()
@@ -997,63 +1002,65 @@ fn folder_crumbs(ui: &mut egui::Ui, form: &mut Form, folders: &FolderIndex, doc_
             let siblings = if level == 0 { Vec::new() } else { children(&folders.all, &parent) };
             let here = parts[..level].join("/");
             let button = theme::chip_button(text, theme::CONTROL);
-            egui::menu::menu_custom_button(ui, button, |ui| {
-                theme::list_style(ui);
-                ui.set_min_width(260.0);
-                if !last {
-                    let up = if level == 0 { t.directly_in_archive.to_string() } else { (t.file_here)(&label) };
-                    if ui.button(up).on_hover_text(t.drop_deeper).clicked() {
-                        chosen = Some(here.clone());
-                        ui.close_menu();
+            egui::containers::menu::MenuButton::from_button(button)
+                .ui(ui, |ui| {
+                    theme::list_style(ui);
+                    ui.set_min_width(260.0);
+                    if !last {
+                        let up = if level == 0 { t.directly_in_archive.to_string() } else { (t.file_here)(&label) };
+                        if ui.button(up).on_hover_text(t.drop_deeper).clicked() {
+                            chosen = Some(here.clone());
+                            ui.close();
+                        }
                     }
-                }
-                if !siblings.is_empty() {
-                    ui.label(theme::field_label(t.instead));
-                    ScrollArea::vertical().id_salt(("crumb", doc_id, level)).max_height(320.0).show(ui, |ui| {
-                        for sib in &siblings {
-                            let path = if parent.is_empty() { sib.clone() } else { format!("{parent}/{sib}") };
-                            if ui.selectable_label(sib == &label, sib.as_str()).clicked() {
-                                chosen = Some(path);
-                                ui.close_menu();
+                    if !siblings.is_empty() {
+                        ui.label(theme::field_label(t.instead));
+                        ScrollArea::vertical().id_salt(("crumb", doc_id, level)).max_height(320.0).show(ui, |ui| {
+                            for sib in &siblings {
+                                let path = if parent.is_empty() { sib.clone() } else { format!("{parent}/{sib}") };
+                                if ui.selectable_label(sib == &label, sib.as_str()).clicked() {
+                                    chosen = Some(path);
+                                    ui.close();
+                                }
                             }
-                        }
-                    });
-                } else if level == 0 {
-                    ui.label(theme::field_label(t.choose_area));
-                    ScrollArea::vertical().id_salt(("crumb", doc_id, level)).max_height(320.0).show(ui, |ui| {
-                        for top in children(&folders.all, "") {
-                            if ui.selectable_label(parts.first() == Some(&top), top.as_str()).clicked() {
-                                chosen = Some(top.clone());
-                                ui.close_menu();
+                        });
+                    } else if level == 0 {
+                        ui.label(theme::field_label(t.choose_area));
+                        ScrollArea::vertical().id_salt(("crumb", doc_id, level)).max_height(320.0).show(ui, |ui| {
+                            for top in children(&folders.all, "") {
+                                if ui.selectable_label(parts.first() == Some(&top), top.as_str()).clicked() {
+                                    chosen = Some(top.clone());
+                                    ui.close();
+                                }
                             }
-                        }
-                    });
-                }
-            })
-            .response
-            .on_hover_text(t.change_folder);
+                        });
+                    }
+                })
+                .0
+                .on_hover_text(t.change_folder);
         }
         // Subfolders of the target.
         let below = children(&folders.all, &form.folder);
         if !below.is_empty() {
             let label = RichText::new(t.add_subfolder).size(text::SMALL).color(muted());
             let button = theme::chip_button(label, theme::CONTROL);
-            egui::menu::menu_custom_button(ui, button, |ui| {
-                theme::list_style(ui);
-                ui.set_min_width(260.0);
-                ui.label(theme::field_label(t.subfolders));
-                ScrollArea::vertical().id_salt(("crumb-below", doc_id)).max_height(320.0).show(ui, |ui| {
-                    for c in &below {
-                        if ui.selectable_label(false, c.as_str()).clicked() {
-                            let base = form.folder.trim_end_matches('/');
-                            chosen = Some(if base.is_empty() { c.clone() } else { format!("{base}/{c}") });
-                            ui.close_menu();
+            egui::containers::menu::MenuButton::from_button(button)
+                .ui(ui, |ui| {
+                    theme::list_style(ui);
+                    ui.set_min_width(260.0);
+                    ui.label(theme::field_label(t.subfolders));
+                    ScrollArea::vertical().id_salt(("crumb-below", doc_id)).max_height(320.0).show(ui, |ui| {
+                        for c in &below {
+                            if ui.selectable_label(false, c.as_str()).clicked() {
+                                let base = form.folder.trim_end_matches('/');
+                                chosen = Some(if base.is_empty() { c.clone() } else { format!("{base}/{c}") });
+                                ui.close();
+                            }
                         }
-                    }
-                });
-            })
-            .response
-            .on_hover_text((t.subfolder_count)(below.len()));
+                    });
+                })
+                .0
+                .on_hover_text((t.subfolder_count)(below.len()));
         }
     });
     match chosen {
@@ -1176,16 +1183,17 @@ fn name_parts(ui: &mut egui::Ui, form: &mut Form, cfg: &Config, doc_id: u64, own
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 0.0;
                 let button = theme::chip_button(text, theme::COMPACT);
-                egui::menu::menu_custom_button(ui, button, |ui| {
-                    theme::list_style(ui);
-                    ui.set_min_width(280.0);
-                    changed |= part_editor(ui, part, form, cfg, doc_id);
-                })
-                .response
-                .on_hover_text(match own_name {
-                    true => (t.part_change_rebuild)(part.label()),
-                    false => (t.part_change)(part.label()),
-                });
+                egui::containers::menu::MenuButton::from_button(button)
+                    .ui(ui, |ui| {
+                        theme::list_style(ui);
+                        ui.set_min_width(280.0);
+                        changed |= part_editor(ui, part, form, cfg, doc_id);
+                    })
+                    .0
+                    .on_hover_text(match own_name {
+                        true => (t.part_change_rebuild)(part.label()),
+                        false => (t.part_change)(part.label()),
+                    });
                 if !empty {
                     let x = egui::Button::new(theme::icon_text(theme::icon::X, 12.0, muted()))
                         .frame(false)
@@ -1225,7 +1233,7 @@ fn part_editor(ui: &mut egui::Ui, part: Part, form: &mut Form, cfg: &Config, doc
     }
     let mut changed = edit.changed();
     if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-        ui.close_menu();
+        ui.close();
     }
     if !choices.is_empty() {
         let needle = archive::normalize(value.trim());
@@ -1237,13 +1245,13 @@ fn part_editor(ui: &mut egui::Ui, part: Part, form: &mut Form, cfg: &Config, doc
             if part != Part::Doctype && ui.selectable_label(value.is_empty(), t.no_choice).clicked() {
                 value.clear();
                 changed = true;
-                ui.close_menu();
+                ui.close();
             }
             for c in filtered {
                 if ui.selectable_label(value == c, c.as_str()).clicked() {
                     *value = c.clone();
                     changed = true;
-                    ui.close_menu();
+                    ui.close();
                 }
             }
         });
@@ -1312,9 +1320,9 @@ fn folder_search_field(
     let popup_id = ui.make_persistent_id(("folder-search", doc_id));
     let typed = !filter.trim().is_empty();
     if resp.has_focus() && typed {
-        ui.memory_mut(|m| m.open_popup(popup_id));
-    } else if !typed && ui.memory(|m| m.is_popup_open(popup_id)) {
-        ui.memory_mut(|m| m.close_popup());
+        egui::Popup::open_id(ui.ctx(), popup_id);
+    } else if !typed && egui::Popup::is_id_open(ui.ctx(), popup_id) {
+        egui::Popup::close_id(ui.ctx(), popup_id);
     }
     let mut changed = false;
     if resp.lost_focus() {
@@ -1328,15 +1336,20 @@ fn folder_search_field(
         }
     }
     // The filing target sits at the bottom of the window: hits go above it so they stay inside the window.
-    let close = egui::PopupCloseBehavior::CloseOnClickOutside;
-    egui::popup::popup_above_or_below_widget(ui, popup_id, &resp, egui::AboveOrBelow::Above, close, |ui| {
-        theme::list_style(ui);
-        ui.set_min_width(resp.rect.width().min(560.0));
-        changed |= folder_search_results(ui, folder, folders, cfg, filter);
-    });
+    egui::Popup::from_response(&resp)
+        .id(popup_id)
+        .open_memory(None)
+        .align(egui::RectAlign::TOP_START)
+        .align_alternatives(&[])
+        .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+        .show(|ui| {
+            theme::list_style(ui);
+            ui.set_min_width(resp.rect.width().min(560.0));
+            changed |= folder_search_results(ui, folder, folders, cfg, filter);
+        });
     if changed {
         filter.clear();
-        ui.memory_mut(|m| m.close_popup());
+        egui::Popup::close_id(ui.ctx(), popup_id);
     }
     changed
 }
@@ -1441,7 +1454,7 @@ fn zoom_step(pct: f32, up: bool) -> f32 {
 
 /// Flag whether a document's preview shows the recognized text instead of the page.
 fn text_view_id(path: &Path) -> egui::Id {
-    egui::Id::new(("show-text", path))
+    egui::Id::unique(("show-text", path))
 }
 
 /// Page size while none is loaded: A4 portrait like the preview images.
@@ -1456,7 +1469,7 @@ pub fn preview_ui(ui: &mut egui::Ui, view: Preview, size: Vec2) {
     let g = general::t();
     // The bar above the page wraps in narrow windows (multiple pages, with text). Its height in the last
     // frame decides the room for the page below.
-    let bar_id = ui.id().with("preview-bar");
+    let bar_id = ui.scope_id().with("preview-bar");
     let nav_h: f32 = ui.data(|d| d.get_temp(bar_id)).unwrap_or(BAR_HEIGHT).max(BAR_HEIGHT);
     let has_text = analysis.is_some_and(|a| !a.text.trim().is_empty());
     let text_id = text_view_id(path);

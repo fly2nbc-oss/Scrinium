@@ -276,7 +276,7 @@ impl LocalAi {
         let t = ai::t();
         let mut close = false;
         let enter = theme::dialog_enter(ctx);
-        let modal = theme::dialog(egui::Id::new("model-delete")).show(ctx, |ui| {
+        let modal = theme::dialog(egui::Id::unique("model-delete")).show(ctx, |ui| {
             ui.set_width(420.0);
             ui.label(theme::dialog_title(&(t.delete_title)(spec.name)));
             ui.add_space(8.0);

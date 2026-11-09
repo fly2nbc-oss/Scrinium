@@ -562,10 +562,10 @@ pub fn dialog_enter(ctx: &egui::Context) -> bool {
 /// `surface_raised` with an accent border, below it a 4 px track. `slot` stacks several pills from bottom to top. The
 /// text says what is running and how far it is.
 pub fn progress_pill(ctx: &egui::Context, slot: usize, text: &str, share: f32) {
-    let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::new(("progress", slot))));
+    let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::unique(("progress", slot))));
     let galley = painter.layout_no_wrap(text.to_string(), egui::FontId::proportional(text::BODY), tokens::fg());
     let width = (galley.size().x + 2.0 * space::S4).max(300.0);
-    let screen = ctx.screen_rect();
+    let screen = ctx.content_rect();
     // Above the status bar (40) with a gap; each further pill 56 higher.
     let centre = egui::pos2(screen.center().x, screen.bottom() - 40.0 - space::S4 - 24.0 - 56.0 * slot as f32);
     let pill = egui::Rect::from_center_size(centre, egui::vec2(width, 48.0));
@@ -709,7 +709,7 @@ pub fn field(ui: &mut egui::Ui, edit: egui::TextEdit) -> Response {
         widgets.inactive.bg_stroke = strong;
         widgets.hovered.bg_stroke = strong;
         let edit = edit.margin(Margin::symmetric(FIELD_MARGIN as i8, 4)).min_size(egui::vec2(0.0, CONTROL));
-        let resp = ui.add(edit.vertical_align(egui::Align::Center));
+        let resp = ui.add(edit.align(egui::Align2::LEFT_CENTER));
         if resp.has_focus() {
             focus_ring(ui, resp.rect, radius::MD);
         }
@@ -878,8 +878,8 @@ pub fn list_style(ui: &mut egui::Ui) {
 }
 
 /// Combo box with a Lucide chevron instead of the filled egui triangle; looks like a secondary button.
-pub fn combo(id: impl std::hash::Hash) -> Combo {
-    Combo(egui::ComboBox::from_id_salt(id).icon(|ui, rect, visuals, _open, _above| {
+pub fn combo<'a>(id: impl egui::AsIdSalt) -> Combo<'a> {
+    Combo(egui::ComboBox::from_id_salt(id).icon(|ui, rect, visuals, _open| {
         let font = egui::FontId::proportional(ICON_INLINE);
         let color = visuals.fg_stroke.color;
         ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, icon::CHEVRON_DOWN, font, color);
@@ -887,9 +887,9 @@ pub fn combo(id: impl std::hash::Hash) -> Combo {
 }
 
 /// `egui::ComboBox` with a border after the border rule and rows after `list_style`.
-pub struct Combo(egui::ComboBox);
+pub struct Combo<'a>(egui::ComboBox<'a>);
 
-impl Combo {
+impl Combo<'_> {
     pub fn selected_text(self, text: impl Into<egui::WidgetText>) -> Self {
         Self(self.0.selected_text(text))
     }
@@ -1063,7 +1063,7 @@ fn toggle_mark(ui: &mut egui::Ui, on: bool, label: egui::WidgetText, round: bool
     let text_h = galley.as_ref().map_or(0.0, |g| g.size().y);
     let size = egui::vec2(BOX + text_w, CONTROL.max(text_h));
     let (rect, resp) = ui.allocate_exact_size(size, egui::Sense::click());
-    let kind = if round { egui::WidgetType::RadioButton } else { egui::WidgetType::Checkbox };
+    let kind = if round { egui::Role::RadioButton } else { egui::Role::CheckBox };
     let text = galley.as_ref().map_or(String::new(), |g| g.text().to_string());
     resp.widget_info(|| egui::WidgetInfo::selected(kind, ui.is_enabled(), on, &text));
     if !ui.is_rect_visible(rect) {

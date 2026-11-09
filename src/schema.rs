@@ -134,7 +134,7 @@ fn chips(ui: &mut egui::Ui, blocks: &mut Vec<Block>) -> bool {
             }
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 0.0;
-                let chip = ui.dnd_drag_source(egui::Id::new(("name-block", i)), i, |ui| {
+                let chip = ui.dnd_drag_source(egui::Id::unique(("name-block", i)), i, |ui| {
                     egui::Frame::new()
                         .fill(tokens::surface_muted())
                         .stroke(Stroke::new(1.0_f32, tokens::line()))
@@ -190,8 +190,8 @@ fn add_menu(ui: &mut egui::Ui, blocks: &[Block]) -> Option<Block> {
     let mut chosen = None;
     let button =
         theme::chip_button(RichText::new(t.add_part).size(text::SMALL).color(tokens::accent()), theme::COMPACT);
-    let text_id = egui::Id::new("name-own-text");
-    egui::menu::menu_custom_button(ui, button, |ui| {
+    let text_id = egui::Id::unique("name-own-text");
+    egui::containers::menu::MenuButton::from_button(button).ui(ui, |ui| {
         theme::list_style(ui);
         ui.set_min_width(220.0);
         for key in FIELDS {
@@ -199,7 +199,7 @@ fn add_menu(ui: &mut egui::Ui, blocks: &[Block]) -> Option<Block> {
                 blocks.iter().any(|b| matches!(b, Block::Field(f) if f == key || (key == "subject" && f == "title")));
             if !present && ui.button(field_label(key).unwrap_or(key)).clicked() {
                 chosen = Some(Block::Field(key.to_string()));
-                ui.close_menu();
+                ui.close();
             }
         }
         ui.separator();
@@ -212,7 +212,7 @@ fn add_menu(ui: &mut egui::Ui, blocks: &[Block]) -> Option<Block> {
         if !clean.is_empty() && (ui.button(t.add).clicked() || enter) {
             chosen = Some(Block::Text(clean));
             own.clear();
-            ui.close_menu();
+            ui.close();
         }
         ui.data_mut(|d| d.insert_temp(text_id, own));
     });
