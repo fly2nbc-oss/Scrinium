@@ -1199,7 +1199,8 @@ mod tests {
         use crate::i18n::settings::{DE, EN, ES, FR, IT};
         let ctx = egui::Context::default();
         theme::apply(&ctx, theme::Mode::Light);
-        let _ = ctx.run_ui(Default::default(), |_| {});
+        // The font atlas changes go nowhere here; egui insists (debug assertion) that they are handled.
+        ctx.run_ui(Default::default(), |_| {}).textures_delta.clear();
         let font = egui::FontId::new(text::LARGE, theme::semibold());
         for (lang, t) in [("de", &DE), ("en", &EN), ("fr", &FR), ("es", &ES), ("it", &IT)] {
             let setup = theme::with_icon(theme::icon::SPARKLES, t.setup_with_ai);
